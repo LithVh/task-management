@@ -12,11 +12,11 @@ type Repository struct {
 	db *gorm.DB
 }
 
-func NewRepository(db *gorm.DB) Repository {
-	return Repository{db: db}
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{db: db}
 }
 
-func (r Repository) FindByID(id uuid.UUID) (*User, error) {
+func (r *Repository) FindByID(id uuid.UUID) (*User, error) {
 	var user User
 	err := r.db.Where("id = ?", id).First(&user, 1).Error
 	if err != nil {
@@ -27,12 +27,11 @@ func (r Repository) FindByID(id uuid.UUID) (*User, error) {
 	}
 
 	return &user, nil
-
 }
 
-func (r Repository) FindByEmail(email string) (*User, error) {
+func (r *Repository) FindByEmail(email string) (*User, error) {
 	var user User
-	err := r.db.Where("email = ?", email).First(&user, 1).Error
+	err := r.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("user not found")
@@ -43,7 +42,7 @@ func (r Repository) FindByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (r Repository) Create(user *User) error {
+func (r *Repository) Create(user *User) error {
 	err := r.db.Create(user).Error
 	if err != nil {
 		return fmt.Errorf("Create: %v", err)
@@ -51,11 +50,11 @@ func (r Repository) Create(user *User) error {
 	return nil
 }
 
-func (r Repository) Update(user *User) error {
+func (r *Repository) Update(user *User) error {
 	return fmt.Errorf("Update: %v", r.db.Model(&user).Where("id = ?", user.ID).Updates(user).Error)
 }
 
-func (r Repository) EmailAvailale(email string) (bool, error) {
+func (r *Repository) EmailAvailale(email string) (bool, error) {
 	var count int64
 	err := r.db.Model(&User{}).Where("email = ?", email).Count(&count).Error
 	if err != nil {

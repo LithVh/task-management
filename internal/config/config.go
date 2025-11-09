@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -37,10 +38,10 @@ type CORSConfig struct {
 	Origin string
 }
 
-func Load() *Config {
+func Load() (*Config, error) {
 	_ = godotenv.Load()
 
-	return &Config{
+	config := &Config{
 		Server: ServerConfig{
 			Port: getEnvVal("PORT", "8080"),
 			Env:  getEnvVal("ENV", "development"),
@@ -48,22 +49,30 @@ func Load() *Config {
 		Database: DatabaseConfig{
 			Host:     getEnvVal("DB_HOST", "localhost"),
 			Port:     getEnvVal("DB_PORT", "5432"),
-			User:     getEnvVal("DB_HOST", "postgres"),
-			Password: getEnvVal("DB_HOST", "0"),
-			DBName:   getEnvVal("DB_HOST", "task_management"),
+			User:     getEnvVal("DB_USER", "postgres"),
+			Password: getEnvVal("DB_PASSWORD", ""),
+			DBName:   getEnvVal("DB_NAME", "task_management"),
 		},
 		JWT: JWTConfig{
-			Secret:      getEnvVal("JWT_SECRET", "f3b1c2d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef"),
+			Secret:      getEnvVal("JWT_SECRET", ""),
 			ExpireHours: getEnvIntVal("JWT_EXPIRE_HOURS", 24),
 		},
 		CORS: CORSConfig{
 			Origin: getEnvVal("CORS_ORIGIN", "*"),
 		},
 	}
+	// fmt.Println(config.Database.Password, config.JWT.Secret)
+
+	if config.Database.Password == "" || config.JWT.Secret == "" {
+		return nil, fmt.Errorf("Load - unset confidential info")
+	}
+
+	return config, nil
 }
 
 func getEnvVal(key, defaultVal string) string {
 	val := os.Getenv(key)
+	// fmt.Println(key, val)
 	if val == "" {
 		return defaultVal
 	}

@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"task-management/internal/utils"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -45,7 +43,7 @@ func (controller *AuthController) Login(c *gin.Context) {
 	var dto LoginRequest
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		c.IndentedJSON(400, gin.H{
-			"error" : "invalid request body",
+			"error": "invalid request body",
 		})
 		return
 	}
@@ -53,19 +51,10 @@ func (controller *AuthController) Login(c *gin.Context) {
 	res, err := controller.service.Login(&dto)
 	if err != nil {
 		c.IndentedJSON(401, gin.H{
-			"error" : err.Error(),
+			"error": err.Error(),
 		})
 		return
 	}
 
 	c.IndentedJSON(200, res)
-}
-
-
-// Logout handles POST /api/v1/auth/logout
-// JWT is stateless, so logout is handled client-side by discarding the token
-func (ctrl *Controller) Logout(c *gin.Context) {
-	utils.SuccessJSON(c, 200, gin.H{
-		"message": "Logged out successfully. Please discard your token.",
-	})
 }

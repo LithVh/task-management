@@ -22,15 +22,15 @@ type authService struct {
 }
 
 func NewAuthService(config *config.Config, repo *user.Repository) AuthService {
-	return authService{config: config, repo: repo}
+	return &authService{config: config, repo: repo}
 }
 
-func (s authService) Register(dto *RegisterRequest) (*AuthResponse, error) {
-	exists, err := s.repo.EmailAvailale(dto.Email)
+func (s *authService) Register(dto *RegisterRequest) (*AuthResponse, error) {
+	available, err := s.repo.EmailAvailale(dto.Email)
 	if err != nil {
 		return nil, fmt.Errorf("Register: %v", err)
 	}
-	if exists {
+	if !available {
 		return nil, fmt.Errorf("email already registered")
 	}
 
@@ -51,7 +51,7 @@ func (s authService) Register(dto *RegisterRequest) (*AuthResponse, error) {
 		return nil, fmt.Errorf("failed to add user to DB - Register: %v", err)
 	}
 
-	tokenString, err := utils.CreateToken(s.config)
+	tokenString, err := utils.CreateToken(s.config, new.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new token - Register: %v", err)
 	}
@@ -63,7 +63,7 @@ func (s authService) Register(dto *RegisterRequest) (*AuthResponse, error) {
 
 }
 
-func (s authService) Login(dto *LoginRequest) (*AuthResponse, error) {
+func (s *authService) Login(dto *LoginRequest) (*AuthResponse, error) {
 
 	userInfo, err := s.repo.FindByEmail(dto.Email)
 	if err != nil {
@@ -74,7 +74,7 @@ func (s authService) Login(dto *LoginRequest) (*AuthResponse, error) {
 		return nil, fmt.Errorf("password doesnt match - Login: %v", err)
 	}
 
-	token, err := utils.CreateToken(s.config)
+	token, err := utils.CreateToken(s.config, userInfo.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create token - Login: %v", err)
 	}

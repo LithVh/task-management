@@ -1,7 +1,7 @@
 package auth
 
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,min=1,max=255"`
+	Email    string `json:"email" binding:"required,email,min=1,max=255"`
 	Name     string `json:"name" binding:"required,min=1,max=255"`
 	Password string `json:"password" binding:"required,min=1,max=255"`
 }
