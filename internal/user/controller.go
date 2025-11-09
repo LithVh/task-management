@@ -1,60 +1,81 @@
 package user
 
 import (
-	"task-management/internal/middleware"
-	"task-management/internal/utils"
-
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Controller struct {
-	service *Service
+	service Service
 }
 
-func NewController(service *Service) *Controller {
+func NewController(service Service) *Controller {
 	return &Controller{service: service}
 }
 
 // GetMe handles GET /api/v1/users/me
-func (ctrl *Controller) GetMe(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (controller *Controller) MyProfile(c *gin.Context) {
+	userID, ok := c.Get("userID")
 	if !ok {
-		utils.ErrorJSON(c, 401, "Unauthorized")
+		c.IndentedJSON(401, gin.H{
+			"error": "unauthorized",
+		})
 		return
 	}
 
-	user, err := ctrl.service.GetProfile(userID)
+	userUUID := userID.(uuid.UUID)
+
+	// userUUID, err := uuid.Parse(userID)
+	// if err != nil {
+	// 	c.IndentedJSON(500, gin.H{
+	// 		"error": "id parsing error",
+	// 	})
+	// 	return
+	// }
+
+	user, err := controller.service.GetProfile(userUUID)
 	if err != nil {
-		utils.ErrorJSON(c, 404, err.Error())
+		c.IndentedJSON(404, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
-	utils.SuccessJSON(c, 200, user)
+	c.IndentedJSON(200, user)
 }
 
-// UpdateMe handles PUT /api/v1/users/me
-func (ctrl *Controller) UpdateMe(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (controller *Controller) UpdateMyProfile(c *gin.Context) {
+	userID, ok := c.Get("userID")
 	if !ok {
-		utils.ErrorJSON(c, 401, "Unauthorized")
+		c.IndentedJSON(401, gin.H{
+			"error": "unauthorized",
+		})
 		return
 	}
 
-	var dto UpdateUserDTO
+	userUUID := userID.(uuid.UUID)
+
+	var dto UpdateUserRequest
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		utils.ErrorJSON(c, 400, "Invalid request body: "+err.Error())
+		c.IndentedJSON(400, gin.H{
+			"error": "invalid request body",
+		})
 		return
 	}
 
-	user, err := ctrl.service.UpdateProfile(userID, &dto)
+	user, err := controller.service.UpdateProfile(userUUID, &dto)
 	if err != nil {
 		if err.Error() == "email already in use" {
-			utils.ErrorJSON(c, 409, err.Error())
+			c.IndentedJSON(409, gin.H{
+				"error": err.Error(),
+			})
 			return
 		}
-		utils.ErrorJSON(c, 500, err.Error())
+		c.IndentedJSON(500, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
-	utils.SuccessJSON(c, 200, user)
+	c.IndentedJSON(200, user)
 }

@@ -1,57 +1,45 @@
 package user
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
 
-type Service struct {
+type Service interface {
+	GetProfile(id uuid.UUID) (*UserResponse, error)
+	UpdateProfile(id uuid.UUID, dto *UpdateUserRequest) (*UserResponse, error)
+}
+
+type service struct {
 	repo *Repository
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo *Repository) Service {
+	return &service{repo: repo}
 }
 
-// GetProfile retrieves a user's profile by ID
-func (s *Service) GetProfile(userID uuid.UUID) (*UserResponse, error) {
-	user, err := s.repo.FindByID(userID)
+func (service *service) GetProfile(id uuid.UUID) (*UserResponse, error) {
+	user, err := service.repo.FindByID(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetProfile: %v", err)
 	}
-	return ToUserResponse(user), nil
+
+	return &UserResponse{user.ID, user.Name, user.Email}, nil
 }
 
-// UpdateProfile updates a user's profile
-func (s *Service) UpdateProfile(userID uuid.UUID, dto *UpdateUserDTO) (*UserResponse, error) {
-	// Get existing user
-	user, err := s.repo.FindByID(userID)
+func (service *service) UpdateProfile(id uuid.UUID, dto *UpdateUserRequest) (*UserResponse, error) {
+	user, err := service.repo.FindByID(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetProfile: %v", err)
 	}
 
-	// Update fields if provided
-	if dto.Name != "" {
-		user.Name = dto.Name
+	user.Name = dto.Name
+	err = service.repo.Update(user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update profile - UpdateProfile: %v", err)
 	}
 
-	if dto.Email != "" {
-		// Check if email is already in use by another user
-		exists, err := s.repo.EmailExistsExcludingUser(dto.Email, userID)
-		if err != nil {
-			return nil, err
-		}
-		if exists {
-			return nil, errors.New("email already in use")
-		}
-		user.Email = dto.Email
-	}
-
-	// Save updates
-	if err := s.repo.Update(user); err != nil {
-		return nil, err
-	}
-
-	return ToUserResponse(user), nil
+	return &UserResponse{user.ID, user.Name, user.Email}, nil
 }
+
