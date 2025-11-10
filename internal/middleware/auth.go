@@ -30,7 +30,7 @@ func AuthMiddleware(config *config.Config) gin.HandlerFunc {
 		token, err := utils.ParseToken(parts[1], *config)
 		if err != nil {
 			c.AbortWithStatusJSON(401, gin.H{
-				"error": "token invalid or expired",
+				"error": "token invalid or expired" + err.Error(),
 			})
 			return
 		}

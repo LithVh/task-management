@@ -18,7 +18,7 @@ func NewRepository(db *gorm.DB) *Repository {
 
 func (r *Repository) FindByID(id uuid.UUID) (*User, error) {
 	var user User
-	err := r.db.Where("id = ?", id).First(&user, 1).Error
+	err := r.db.Where("id = ?", id).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("user not found")
@@ -51,7 +51,11 @@ func (r *Repository) Create(user *User) error {
 }
 
 func (r *Repository) Update(user *User) error {
-	return fmt.Errorf("Update: %v", r.db.Model(&user).Where("id = ?", user.ID).Updates(user).Error)
+	err := r.db.Model(&user).Where("id = ?", user.ID).Updates(user).Error
+	if err != nil {
+		return fmt.Errorf("Update: %v", err)
+	}
+	return nil
 }
 
 func (r *Repository) EmailAvailale(email string) (bool, error) {

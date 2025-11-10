@@ -31,17 +31,32 @@ func (r *Repository) FindByID(id int64) (*Project, error) {
 func (r *Repository) FindByUserID(userID uuid.UUID) ([]*Project, error) {
 	var projects []*Project
 	err := r.db.Where("user_id = ?", userID).Order("created_at DESC").Find(&projects).Error
-	return projects, fmt.Errorf("FindByUserID: %v", err)
+	if err != nil {
+		return nil, fmt.Errorf("FindByUserID: %v", err)
+	}
+	return projects, nil
 }
 
 func (r *Repository) Create(project *Project) error {
-	return fmt.Errorf("project - Create: %v", r.db.Create(project).Error)
+	err := r.db.Create(project).Error
+	if err != nil {
+		return fmt.Errorf("project - Create: %v", err)
+	}
+	return nil
 }
 
 func (r *Repository) Update(project *Project) error {
-	return fmt.Errorf("project - Update: %v", r.db.Save(project).Error)
+	err := r.db.Save(project).Error
+	if err != nil {
+		return fmt.Errorf("project - Update: %v", err)
+	}
+	return nil
 }
 
 func (r *Repository) Delete(id int64) error {
-	return fmt.Errorf("project - Delete: %v", r.db.Delete(&Project{}, id).Error)
+	err := r.db.Delete(&Project{}, id).Error
+	if err != nil {
+		return fmt.Errorf("project - Delete: %v", err)
+	}
+	return nil
 }

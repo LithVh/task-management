@@ -39,17 +39,32 @@ func (r *Repository) FindByProjectID(projectID int64, filters map[string]interfa
 	}
 
 	err := query.Order("created_at DESC").Find(&tasks).Error
-	return tasks, fmt.Errorf("FindByProjectID: %v", err)
+	if err != nil {
+		return nil, fmt.Errorf("FindByProjectID: %v", err)
+	}
+	return tasks, nil
 }
 
 func (r *Repository) Create(task *Task) error {
-	return fmt.Errorf("task - Create: %v", r.db.Create(task).Error)
+	err := r.db.Create(task).Error
+	if err != nil {
+		return fmt.Errorf("task - Create: %v", r.db.Create(task).Error)
+	}
+	return nil
 }
 
 func (r *Repository) Update(task *Task) error {
-	return fmt.Errorf("task - Update: %v", r.db.Save(task).Error)
+	err := r.db.Save(task).Error
+	if err != nil {
+		return fmt.Errorf("task - Update: %v", r.db.Save(task).Error)
+	}
+	return nil
 }
 
 func (r *Repository) Delete(id int64) error {
-	return fmt.Errorf("task - Delete: %v", r.db.Delete(&Task{}, id).Error)
+	err := r.db.Delete(&Task{}, id).Error
+	if err != nil {
+		return fmt.Errorf("task - Delete: %v", r.db.Delete(&Task{}, id).Error)
+	}
+	return nil
 }
