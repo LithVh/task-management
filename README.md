@@ -2,7 +2,7 @@
 
 > RESTful API for task management built with Go, Gin, and PostgreSQL
 
-A clean, well-structured task management API demonstrating professional Go backend development practices. Perfect for portfolio and job interviews.
+A task management API demonstrating professional Go backend development practices
 
 ## Features
 
@@ -25,51 +25,6 @@ A clean, well-structured task management API demonstrating professional Go backe
 - **JWT** - Stateless authentication
 - **Docker** - Containerized deployment
 - **bcrypt** - Secure password hashing
-
-## Quick Start
-
-### Prerequisites
-
-- Go 1.21 or higher
-- PostgreSQL 15
-- Docker & Docker Compose (optional)
-
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone <your-repo-url>
-cd task-management
-```
-
-2. **Copy environment variables**
-```bash
-cp .env.example .env
-```
-
-3. **Start PostgreSQL** (using Docker)
-```bash
-docker-compose up -d postgres
-```
-
-4. **Run migrations**
-```bash
-make migrate-up
-```
-
-5. **Start the server**
-```bash
-make run
-```
-
-The API will be available at `http://localhost:8080`
-
-### Using Docker
-
-Start everything with Docker Compose:
-```bash
-make docker-up
-```
 
 ## API Endpoints
 
