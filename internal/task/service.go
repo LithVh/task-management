@@ -30,20 +30,19 @@ func NewService(repo *Repository, projectRepo *project.Repository) Service {
 	}
 }
 
-func (s *service) verifyProjectOwnership(projectID int64, userID uuid.UUID) error {
-	proj, err := s.projectRepo.FindByID(projectID)
+func (s *service) verifyProjectAccess(projectID int64, userID uuid.UUID) error {
+	hasAccess, err := s.projectRepo.HasAccess(projectID, userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("verifyProjectAccess: %v", err)
 	}
-	if proj.UserID != userID {
-		return fmt.Errorf("verifyProjectOwnership: unauthorized: you don't own this project")
+	if !hasAccess {
+		return fmt.Errorf("verifyProjectAccess: unauthorized: you don't have access to this project")
 	}
 	return nil
 }
 
 func (s *service) List(projectID int64, userID uuid.UUID, filters map[string]interface{}) ([]*TaskResponse, error) {
-	// Verify project ownership
-	if err := s.verifyProjectOwnership(projectID, userID); err != nil {
+	if err := s.verifyProjectAccess(projectID, userID); err != nil {
 		return nil, err
 	}
 
@@ -55,8 +54,7 @@ func (s *service) List(projectID int64, userID uuid.UUID, filters map[string]int
 }
 
 func (s *service) Create(projectID int64, userID uuid.UUID, dto *CreateTaskRequest) (*TaskResponse, error) {
-	// Verify project ownership
-	if err := s.verifyProjectOwnership(projectID, userID); err != nil {
+	if err := s.verifyProjectAccess(projectID, userID); err != nil {
 		return nil, err
 	}
 
@@ -83,12 +81,11 @@ func (s *service) Create(projectID int64, userID uuid.UUID, dto *CreateTaskReque
 func (s *service) GetByID(taskID int64, userID uuid.UUID) (*TaskResponse, error) {
 	task, err := s.repo.FindByID(taskID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetByID: %v",err)
 	}
 
-	// Verify project ownership
-	if err := s.verifyProjectOwnership(task.ProjectID, userID); err != nil {
-		return nil, err
+	if err := s.verifyProjectAccess(task.ProjectID, userID); err != nil {
+		return nil, fmt.Errorf("GetByID: %v", err)
 	}
 
 	return ToTaskResponse(task), nil
@@ -97,15 +94,13 @@ func (s *service) GetByID(taskID int64, userID uuid.UUID) (*TaskResponse, error)
 func (s *service) Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest) (*TaskResponse, error) {
 	task, err := s.repo.FindByID(taskID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Update: %v", err)
 	}
 
-	// Verify project ownership
-	if err := s.verifyProjectOwnership(task.ProjectID, userID); err != nil {
-		return nil, err
+	if err := s.verifyProjectAccess(task.ProjectID, userID); err != nil {
+		return nil, fmt.Errorf("Update: %v", err)
 	}
 
-	// Update fields if provided
 	if dto.Title != "" {
 		task.Title = dto.Title
 	}
@@ -114,7 +109,6 @@ func (s *service) Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest)
 	}
 	if dto.Status != "" {
 		task.Status = dto.Status
-		// Auto-update completed flag based on status
 		task.Completed = dto.Status == StatusCompleted
 	}
 	if dto.Priority != nil {
@@ -126,7 +120,7 @@ func (s *service) Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest)
 	task.UpdatedAt = time.Now()
 
 	if err := s.repo.Update(task); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Update: %v", err)
 	}
 
 	return ToTaskResponse(task), nil
@@ -135,18 +129,15 @@ func (s *service) Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest)
 func (s *service) ToggleComplete(taskID int64, userID uuid.UUID) (*TaskResponse, error) {
 	task, err := s.repo.FindByID(taskID)
 	if err != nil {
+		return nil, fmt.Errorf("ToggleComplete: %v", err)
+	}
+
+	if err := s.verifyProjectAccess(task.ProjectID, userID); err != nil {
 		return nil, err
 	}
 
-	// Verify project ownership
-	if err := s.verifyProjectOwnership(task.ProjectID, userID); err != nil {
-		return nil, err
-	}
-
-	// Toggle completed
 	task.Completed = !task.Completed
 
-	// Update status accordingly
 	if task.Completed {
 		task.Status = StatusCompleted
 	} else {
@@ -168,8 +159,7 @@ func (s *service) Delete(taskID int64, userID uuid.UUID) error {
 		return err
 	}
 
-	// Verify project ownership
-	if err := s.verifyProjectOwnership(task.ProjectID, userID); err != nil {
+	if err := s.verifyProjectAccess(task.ProjectID, userID); err != nil {
 		return err
 	}
 

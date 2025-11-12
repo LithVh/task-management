@@ -24,6 +24,7 @@ func (controller *Controller) List(c *gin.Context) {
 		return
 	}
 
+
 	userUUID := userID.(uuid.UUID)
 
 	projects, err := controller.service.List(userUUID)

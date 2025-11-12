@@ -28,7 +28,7 @@ type ProjectResponse struct {
 func ToProjectResponse(project *Project) *ProjectResponse {
 	return &ProjectResponse{
 		ID:          project.ID,
-		UserID:      project.UserID,
+		UserID:      project.OwnerID,
 		Name:        project.Name,
 		Description: project.Description,
 		CreatedAt:   project.CreatedAt,

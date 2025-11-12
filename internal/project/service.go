@@ -34,7 +34,7 @@ func (s *service) List(userID uuid.UUID) ([]*ProjectResponse, error) {
 func (s *service) Create(userID uuid.UUID, dto *CreateProjectRequest) (*ProjectResponse, error) {
 	now := time.Now()
 	project := &Project{
-		UserID:      userID,
+		OwnerID:     userID,
 		Name:        dto.Name,
 		Description: dto.Description,
 		CreatedAt:   now,
@@ -55,7 +55,7 @@ func (s *service) GetByID(projectID int64, userID uuid.UUID) (*ProjectResponse, 
 	}
 
 	//only owner can access
-	if project.UserID != userID {
+	if project.OwnerID != userID {
 		return nil, errors.New("unauthorized: you don't own this project")
 	}
 
@@ -68,7 +68,7 @@ func (s *service) Update(projectID int64, userID uuid.UUID, dto *UpdateProjectRe
 		return nil, err
 	}
 
-	if project.UserID != userID {
+	if project.OwnerID != userID {
 		return nil, errors.New("unauthorized: you don't own this project")
 	}
 
@@ -93,7 +93,7 @@ func (s *service) Delete(projectID int64, userID uuid.UUID) error {
 		return err
 	}
 
-	if project.UserID != userID {
+	if project.OwnerID != userID {
 		return errors.New("unauthorized: you don't own this project")
 	}
 
