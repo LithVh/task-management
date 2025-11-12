@@ -8,6 +8,7 @@ import (
 	"task-management/internal/database"
 	"task-management/internal/middleware"
 	"task-management/internal/project"
+	"task-management/internal/subtask"
 	"task-management/internal/task"
 	"task-management/internal/user"
 
@@ -42,6 +43,10 @@ func main() {
 	taskService := task.NewService(taskRepo, projectRepo)
 	taskController := task.NewController(taskService)
 
+	subtaskRepo := subtask.NewRepository(db)
+	subtaskService := subtask.NewService(subtaskRepo, taskService)
+	subtaskController := subtask.NewController(subtaskService)
+
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware(config))
 	group := router.Group("/")
@@ -49,6 +54,7 @@ func main() {
 	user.RegisterRoutes(group, userController, middleware.AuthMiddleware(config))
 	project.RegisterRoutes(group, projectController, middleware.AuthMiddleware(config))
 	task.RegisterRoutes(group, taskController, middleware.AuthMiddleware(config))
+	subtask.RegisterRoutes(group, subtaskController, middleware.AuthMiddleware(config))
 
 	router.Run(":8080")
 }
