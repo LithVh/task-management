@@ -61,9 +61,18 @@ func (r *Repository) Delete(id int64) error {
 	return nil
 }
 
+func (r *Repository) IsOwner(projectID int64, userID uuid.UUID) (bool, error) {
+	project, err := r.FindByID(projectID)
+	if err != nil {
+		return false, fmt.Errorf("project doesnt exist - HasAccess: %v", err)
+	}
+
+	return project.OwnerID == userID, nil
+}
+
 func (r *Repository) HasAccess(projectID int64, userID uuid.UUID) (bool, error) {
 	// var project Project
-	project, err := r.FindByID(projectID) 
+	project, err := r.FindByID(projectID)
 	if err != nil {
 		return false, fmt.Errorf("project doesnt exist - HasAccess: %v", err)
 	}
@@ -80,6 +89,7 @@ func (r *Repository) HasAccess(projectID int64, userID uuid.UUID) (bool, error) 
 	// 	return false, fmt.Errorf("owner check - HasAccess: %v", err)
 	// }
 
+	fmt.Println(project)
 	// Check if user is a member
 	var member ProjectMember
 	err = r.db.Where("project_id = ? AND user_id = ?", projectID, userID).First(&member).Error

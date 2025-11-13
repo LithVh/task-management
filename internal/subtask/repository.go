@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -44,14 +43,6 @@ func (r *Repository) FindByTaskID(taskID int64, status, priority *string) ([]Sub
 		return nil, fmt.Errorf("failed to find subtasks - FindByTaskID: %v", err)
 	}
 
-	return subtasks, nil
-}
-
-func (r *Repository) FindByAssignedTo(assignedTo uuid.UUID) ([]Subtask, error) {
-	var subtasks []Subtask
-	if err := r.db.Where("assigned_to = ?", assignedTo).Order("created_at DESC").Find(&subtasks).Error; err != nil {
-		return nil, fmt.Errorf("failed to find subtasks by assigned user - FindByAssignedTo: %v", err)
-	}
 	return subtasks, nil
 }
 

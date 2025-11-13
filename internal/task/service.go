@@ -30,6 +30,17 @@ func NewService(repo *Repository, projectRepo *project.Repository) Service {
 	}
 }
 
+func (s *service) verifyProjectOwner(projectID int64, userID uuid.UUID) error {
+	hasAccess, err := s.projectRepo.IsOwner(projectID, userID)
+	if err != nil {
+		return fmt.Errorf("verifyProjectAccess: %v", err)
+	}
+	if !hasAccess {
+		return fmt.Errorf("verifyProjectAccess: unauthorized: you are not the owner of this project")
+	}
+	return nil
+}
+
 func (s *service) verifyProjectAccess(projectID int64, userID uuid.UUID) error {
 	hasAccess, err := s.projectRepo.HasAccess(projectID, userID)
 	if err != nil {
@@ -97,7 +108,7 @@ func (s *service) Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest)
 		return nil, fmt.Errorf("Update: %v", err)
 	}
 
-	if err := s.verifyProjectAccess(task.ProjectID, userID); err != nil {
+	if err := s.verifyProjectOwner(task.ProjectID, userID); err != nil {
 		return nil, fmt.Errorf("Update: %v", err)
 	}
 
@@ -159,7 +170,7 @@ func (s *service) Delete(taskID int64, userID uuid.UUID) error {
 		return err
 	}
 
-	if err := s.verifyProjectAccess(task.ProjectID, userID); err != nil {
+	if err := s.verifyProjectOwner(task.ProjectID, userID); err != nil {
 		return err
 	}
 

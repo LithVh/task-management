@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"task-management/internal/task"
+
+	"github.com/google/uuid"
 )
 
 type Service interface {
@@ -16,12 +17,12 @@ type Service interface {
 	Update(userID uuid.UUID, id int64, req UpdateSubtaskRequest) (*Subtask, error)
 	ToggleComplete(userID uuid.UUID, id int64) (*Subtask, error)
 	Delete(userID uuid.UUID, id int64) error
-	GetByAssignedUser(userID uuid.UUID, assignedTo uuid.UUID) ([]Subtask, error)
 }
 
 type service struct {
 	repo        *Repository
 	taskService task.Service
+	// projectService project.Service
 }
 
 func NewService(repo *Repository, taskService task.Service) Service {
@@ -31,14 +32,14 @@ func NewService(repo *Repository, taskService task.Service) Service {
 	}
 }
 
-func (s *service) verifyTaskAccess(userID uuid.UUID, taskID int64) error {
+func (s *service) verifyProjectAccess(userID uuid.UUID, taskID int64) error {
 	_, err := s.taskService.GetByID(taskID, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return fmt.Errorf("task not found")
 		}
 		if strings.Contains(err.Error(), "does not belong to user") {
-			return fmt.Errorf("unauthorized: task does not belong to user")
+			return fmt.Errorf("unauthorized: no access to this")
 		}
 		return err
 	}
@@ -85,7 +86,7 @@ func (s *service) checkAndAutoCompleteTask(taskID int64, userID uuid.UUID) error
 
 func (s *service) List(userID uuid.UUID, taskID int64, status, priority *string) ([]Subtask, error) {
 	// Verify user has access to the parent task
-	if err := s.verifyTaskAccess(userID, taskID); err != nil {
+	if err := s.verifyProjectAccess(userID, taskID); err != nil {
 		return nil, err
 	}
 
@@ -99,7 +100,7 @@ func (s *service) List(userID uuid.UUID, taskID int64, status, priority *string)
 
 func (s *service) Create(userID uuid.UUID, taskID int64, req CreateSubtaskRequest) (*Subtask, error) {
 	// Verify user has access to the parent task
-	if err := s.verifyTaskAccess(userID, taskID); err != nil {
+	if err := s.verifyProjectAccess(userID, taskID); err != nil {
 		return nil, err
 	}
 
@@ -132,8 +133,7 @@ func (s *service) GetByID(userID uuid.UUID, id int64) (*Subtask, error) {
 		return nil, err
 	}
 
-	// Verify user has access to the parent task
-	if err := s.verifyTaskAccess(userID, subtask.TaskID); err != nil {
+	if err := s.verifyProjectAccess(userID, subtask.TaskID); err != nil {
 		return nil, err
 	}
 
@@ -146,8 +146,7 @@ func (s *service) Update(userID uuid.UUID, id int64, req UpdateSubtaskRequest) (
 		return nil, fmt.Errorf("subtask not found - Update: %v", err)
 	}
 
-	// Verify user has access to the parent task
-	if err := s.verifyTaskAccess(userID, subtask.TaskID); err != nil {
+	if err := s.verifyProjectAccess(userID, subtask.TaskID); err != nil {
 		return nil, err
 	}
 
@@ -198,8 +197,7 @@ func (s *service) ToggleComplete(userID uuid.UUID, id int64) (*Subtask, error) {
 		return nil, err
 	}
 
-	// Verify user has access to the parent task
-	if err := s.verifyTaskAccess(userID, subtask.TaskID); err != nil {
+	if err := s.verifyProjectAccess(userID, subtask.TaskID); err != nil {
 		return nil, err
 	}
 
@@ -232,26 +230,9 @@ func (s *service) Delete(userID uuid.UUID, id int64) error {
 		return err
 	}
 
-	if err := s.verifyTaskAccess(userID, subtask.TaskID); err != nil {
+	if err := s.verifyProjectAccess(userID, subtask.TaskID); err != nil {
 		return err
 	}
 
 	return s.repo.Delete(id)
-}
-
-func (s *service) GetByAssignedUser(userID uuid.UUID, assignedTo uuid.UUID) ([]Subtask, error) {
-	subtasks, err := s.repo.FindByAssignedTo(assignedTo)
-	if err != nil {
-		return nil, err
-	}
-
-	// Filter subtasks to only include those the user has access to
-	var accessibleSubtasks []Subtask
-	for _, subtask := range subtasks {
-		if err := s.verifyTaskAccess(userID, subtask.TaskID); err == nil {
-			accessibleSubtasks = append(accessibleSubtasks, subtask)
-		}
-	}
-
-	return accessibleSubtasks, nil
 }

@@ -7,12 +7,12 @@ import (
 )
 
 type Project struct {
-	ID          int64      `gorm:"primaryKey;autoIncrement"`
-	OwnerID     uuid.UUID  `gorm:"column:Owner_id;type:uuid;not null"`
-	Name        string     `gorm:"type:varchar(255);not null"`
-	Description string     `gorm:"type:varchar(255)"`
-	CreatedAt   time.Time  `gorm:"type:timestamp;not null"`
-	UpdatedAt   time.Time  `gorm:"type:timestamp;not null"`
+	ID          int64     `gorm:"primaryKey;autoIncrement"`
+	OwnerID     uuid.UUID `gorm:"column:owner_id;type:uuid;not null"`
+	Name        string    `gorm:"type:varchar(255);not null"`
+	Description string    `gorm:"type:varchar(255)"`
+	CreatedAt   time.Time `gorm:"type:timestamp;not null"`
+	UpdatedAt   time.Time `gorm:"type:timestamp;not null"`
 }
 
 func (Project) TableName() string {

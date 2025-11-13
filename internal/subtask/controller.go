@@ -242,29 +242,3 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "subtask deleted successfully"})
 }
 
-// GetByAssignedUser retrieves all subtasks assigned to a specific user
-// GET /users/:id/subtasks
-func (ctrl *Controller) GetByAssignedUser(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		return
-	}
-
-	userUUID := userID.(uuid.UUID)
-
-	assignedToStr := c.Param("id")
-	assignedTo, err := uuid.Parse(assignedToStr)
-	if err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
-		return
-	}
-
-	subtasks, err := ctrl.service.GetByAssignedUser(userUUID, assignedTo)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.IndentedJSON(http.StatusOK, ToSubtaskResponseList(subtasks))
-}
