@@ -13,5 +13,6 @@ func RegisterRoutes(group *gin.RouterGroup, controller *Controller, authMw gin.H
 		projects.GET("/:id", controller.GetByID)
 		projects.PUT("/:id", controller.Update)
 		projects.DELETE("/:id", controller.Delete)
+		projects.POST("/:id/members", controller.AddUser)
 	}
 }

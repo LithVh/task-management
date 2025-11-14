@@ -102,6 +102,7 @@ func (s *service) GetByID(taskID int64, userID uuid.UUID) (*TaskResponse, error)
 	return ToTaskResponse(task), nil
 }
 
+
 func (s *service) Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest) (*TaskResponse, error) {
 	task, err := s.repo.FindByID(taskID)
 	if err != nil {

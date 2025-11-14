@@ -2,6 +2,7 @@ package project
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,14 +17,13 @@ func NewController(service Service) *Controller {
 }
 
 func (controller *Controller) List(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
+	userID, exists := c.Get("userID")
+	if !exists {
 		c.IndentedJSON(401, gin.H{
 			"error": "unauthorized",
 		})
 		return
 	}
-
 
 	userUUID := userID.(uuid.UUID)
 
@@ -38,9 +38,9 @@ func (controller *Controller) List(c *gin.Context) {
 	c.IndentedJSON(200, projects)
 }
 
-func (ctrl *Controller) Create(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
+func (controller *Controller) Create(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
 		c.IndentedJSON(401, gin.H{
 			"error": "unauthorized",
 		})
@@ -56,7 +56,7 @@ func (ctrl *Controller) Create(c *gin.Context) {
 		return
 	}
 
-	project, err := ctrl.service.Create(userUUID, &dto)
+	project, err := controller.service.Create(userUUID, &dto)
 	if err != nil {
 		c.IndentedJSON(500, gin.H{
 			"error": err.Error(),
@@ -67,9 +67,9 @@ func (ctrl *Controller) Create(c *gin.Context) {
 	c.IndentedJSON(201, project)
 }
 
-func (ctrl *Controller) GetByID(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
+func (controller *Controller) GetByID(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
 		c.IndentedJSON(401, gin.H{
 			"error": "unauthorized",
 		})
@@ -85,7 +85,7 @@ func (ctrl *Controller) GetByID(c *gin.Context) {
 		return
 	}
 
-	project, err := ctrl.service.GetByID(projectID, userUUID)
+	project, err := controller.service.GetByID(projectID, userUUID)
 	if err != nil {
 		if err.Error() == "project not found" {
 			c.IndentedJSON(404, gin.H{
@@ -109,8 +109,8 @@ func (ctrl *Controller) GetByID(c *gin.Context) {
 }
 
 func (controller *Controller) Update(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
+	userID, exists := c.Get("userID")
+	if !exists {
 		c.IndentedJSON(401, gin.H{
 			"error": "unauthorized",
 		})
@@ -153,9 +153,9 @@ func (controller *Controller) Update(c *gin.Context) {
 	c.IndentedJSON(200, project)
 }
 
-func (ctrl *Controller) Delete(c *gin.Context) {
-	userID, ok := c.Get("userID")
-	if !ok {
+func (controller *Controller) Delete(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
 		c.IndentedJSON(401, gin.H{
 			"error": "unauthorized",
 		})
@@ -169,7 +169,7 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 		return
 	}
 
-	err = ctrl.service.Delete(projectID, userUUID)
+	err = controller.service.Delete(projectID, userUUID)
 	if err != nil {
 		if err.Error() == "project not found" {
 			c.IndentedJSON(404, gin.H{"error": err.Error()})
@@ -184,4 +184,42 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 	}
 
 	c.IndentedJSON(200, gin.H{"message": "Project deleted successfully"})
+}
+
+func (controller *Controller) AddUser(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.IndentedJSON(401, gin.H{"error": "unauthorized"})
+	}
+	userUUID := userID.(uuid.UUID)
+
+	projectID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.IndentedJSON(400, gin.H{"error": err.Error()})
+	}
+
+	var dto AddUserRequest
+	err = c.ShouldBindJSON(&dto)
+	if err != nil {
+		c.IndentedJSON(400, gin.H{"error": "invalid request body: " + err.Error()})
+		return
+	}
+
+	err = controller.service.AddUser(projectID, userUUID, dto.UserID)
+	if err != nil {
+		if strings.Contains(err.Error(), "unauthorized") {
+			c.IndentedJSON(403, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "project not found") {
+			c.IndentedJSON(403, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.IndentedJSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(201, gin.H{"message": "user added to project"})
+
 }

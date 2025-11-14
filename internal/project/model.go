@@ -21,8 +21,8 @@ func (Project) TableName() string {
 
 type ProjectMember struct {
 	ID        int64     `gorm:"primaryKey;autoIncrement"`
-	ProjectID int64     `gorm:"column:Project_id;not null"`
-	UserID    uuid.UUID `gorm:"column:User_id;type:uuid;not null"`
+	ProjectID int64     `gorm:"column:project_id;not null"`
+	UserID    uuid.UUID `gorm:"column:user_id;type:uuid;not null"`
 }
 
 func (ProjectMember) TableName() string {

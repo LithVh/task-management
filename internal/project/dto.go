@@ -16,6 +16,10 @@ type UpdateProjectRequest struct {
 	Description string `json:"description" binding:"omitempty,max=255"`
 }
 
+type AddUserRequest struct {
+	UserID uuid.UUID `json:"user_id" binding:"required,min=1,max=255"`
+}
+
 type ProjectResponse struct {
 	ID          int64     `json:"id"`
 	UserID      uuid.UUID `json:"user_id"`

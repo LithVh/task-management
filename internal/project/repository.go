@@ -61,6 +61,29 @@ func (r *Repository) Delete(id int64) error {
 	return nil
 }
 
+func (r *Repository) AddUser(projectID int64, userID uuid.UUID) error {
+	projectMember := ProjectMember{UserID: userID, ProjectID: projectID}
+	err := r.db.Create(&projectMember).Error
+	if err != nil {
+		return fmt.Errorf("AddUser: %v", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) MemberByID(projectID int64, targetID uuid.UUID) (*ProjectMember, error) {
+	var projectMember ProjectMember
+	err := r.db.Where("project_id = ?", projectID).First(&projectMember).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("MemberListBy: %v", err)
+	}
+	
+	return &projectMember, nil
+}
+
 func (r *Repository) IsOwner(projectID int64, userID uuid.UUID) (bool, error) {
 	project, err := r.FindByID(projectID)
 	if err != nil {

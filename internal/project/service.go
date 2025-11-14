@@ -1,7 +1,7 @@
 package project
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +13,7 @@ type Service interface {
 	GetByID(projectID int64, userID uuid.UUID) (*ProjectResponse, error)
 	Update(projectID int64, userID uuid.UUID, dto *UpdateProjectRequest) (*ProjectResponse, error)
 	Delete(projectID int64, userID uuid.UUID) error
+	AddUser(projectID int64, userID uuid.UUID, targetID uuid.UUID) error
 }
 
 type service struct {
@@ -56,7 +57,7 @@ func (s *service) GetByID(projectID int64, userID uuid.UUID) (*ProjectResponse, 
 
 	//only owner can access
 	if project.OwnerID != userID {
-		return nil, errors.New("unauthorized: you don't own this project")
+		return nil, fmt.Errorf("unauthorized: you don't own this project")
 	}
 
 	return ToProjectResponse(project), nil
@@ -69,7 +70,7 @@ func (s *service) Update(projectID int64, userID uuid.UUID, dto *UpdateProjectRe
 	}
 
 	if project.OwnerID != userID {
-		return nil, errors.New("unauthorized: you don't own this project")
+		return nil, fmt.Errorf("unauthorized: you don't own this project")
 	}
 
 	if dto.Name != "" {
@@ -94,8 +95,37 @@ func (s *service) Delete(projectID int64, userID uuid.UUID) error {
 	}
 
 	if project.OwnerID != userID {
-		return errors.New("unauthorized: you don't own this project")
+		return fmt.Errorf("unauthorized: you don't own this project - Delete: ")
 	}
 
 	return s.repo.Delete(projectID)
+}
+
+func (s *service) AddUser(projectID int64, userID uuid.UUID, targetID uuid.UUID) error {
+	project, err := s.repo.FindByID(projectID)
+	if err != nil {
+		return fmt.Errorf("AddUser: %v", err)
+	}
+
+	if project.OwnerID != userID {
+		return fmt.Errorf("unauthorized: you don't own this project - AddUser: ")
+	}
+
+	projectMember, err := s.repo.MemberByID(projectID, targetID)
+	if err != nil {
+		return fmt.Errorf("AddUser: %v", err)
+	}
+
+	if projectMember != nil {
+		if userID == projectMember.UserID {
+			return fmt.Errorf("member already added to project - AddUser: %v", err)
+		}
+	}
+
+	err = s.repo.AddUser(projectID, targetID)
+	if err != nil {
+		return fmt.Errorf("AddUser: %v", err)
+	}
+
+	return nil
 }

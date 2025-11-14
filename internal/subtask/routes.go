@@ -4,7 +4,7 @@ import "github.com/gin-gonic/gin"
 
 func RegisterRoutes(group *gin.RouterGroup, ctrl *Controller, authMiddleware gin.HandlerFunc) {
 	// Routes for subtasks under tasks
-	taskRoutes := group.Group("/tasks/:id/subtasks")
+	taskRoutes := group.Group("tasks/:id/subtasks")
 	taskRoutes.Use(authMiddleware)
 
 	taskRoutes.GET("", ctrl.List)
