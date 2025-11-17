@@ -4,9 +4,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(group *gin.RouterGroup, controller *Controller, authMw gin.HandlerFunc) {
+func RegisterRoutes(group *gin.RouterGroup, controller *Controller,
+	 authMw gin.HandlerFunc, rateLimitMw gin.HandlerFunc) {
 	projects := group.Group("/projects")
 	projects.Use(authMw) 
+	projects.Use(rateLimitMw)
 	{
 		projects.GET("", controller.List)
 		projects.POST("", controller.Create)

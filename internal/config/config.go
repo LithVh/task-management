@@ -14,6 +14,7 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	CORS     CORSConfig
+	Redis    RedisConfig
 }
 
 type ServerConfig struct {
@@ -38,6 +39,13 @@ type CORSConfig struct {
 	Origin string
 }
 
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
+	DBName   int
+}
+
 func Load() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -60,10 +68,16 @@ func Load() (*Config, error) {
 		CORS: CORSConfig{
 			Origin: getEnvVal("CORS_ORIGIN", "*"),
 		},
+		Redis: RedisConfig{
+			Host:     getEnvVal("REDIS_HOST", "localhost"),
+			Port:     getEnvVal("REDIS_PORT", "6379"),
+			Password: getEnvVal("REDIS_PASSWORD", ""),
+			DBName:   getEnvIntVal("REDIS_DB_NAME", 0),
+		},
 	}
 	// fmt.Println(config.Database.Password, config.JWT.Secret)
 
-	if config.Database.Password == "" || config.JWT.Secret == "" {
+	if config.Database.Password == "" || config.JWT.Secret == "" || config.Redis.Password == "" {
 		return nil, fmt.Errorf("Load - unset confidential info")
 	}
 

@@ -19,7 +19,7 @@ func CORSMiddleware(config *config.Config) gin.HandlerFunc {
 	if config.Server.Env == "development" {
 		corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTION", "PATCH"}
 		corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
-		corsConfig.ExposeHeaders = []string{"Content-Length"}
+		corsConfig.ExposeHeaders = []string{"Content-Length", "Retry-After"}
 		corsConfig.AllowCredentials = true
 	}
 

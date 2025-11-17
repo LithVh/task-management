@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"task-management/internal/auth"
 	"task-management/internal/config"
@@ -22,39 +23,49 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = database.PostgresConnect(config)
+	postgres, err := database.PostgresConnect(config)
 	if err != nil {
 		log.Fatal(err)
 	}
-	db := database.GetDB()
 
-	userRepo := user.NewRepository(db)
+	redis, err := database.RedisConnect(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// db := database.GetDB()
+
+	userRepo := user.NewRepository(postgres)
 	authService := auth.NewAuthService(config, userRepo)
 	authController := auth.NewAuthController(authService)
 
 	userService := user.NewService(userRepo)
 	userController := user.NewController(userService)
 
-	projectRepo := project.NewRepository(db)
+	projectRepo := project.NewRepository(postgres)
 	projectService := project.NewService(projectRepo)
 	projectController := project.NewController(projectService)
 
-	taskRepo := task.NewRepository(db)
+	taskRepo := task.NewRepository(postgres)
 	taskService := task.NewService(taskRepo, projectRepo)
 	taskController := task.NewController(taskService)
 
-	subtaskRepo := subtask.NewRepository(db)
+	subtaskRepo := subtask.NewRepository(postgres)
 	subtaskService := subtask.NewService(subtaskRepo, taskService)
 	subtaskController := subtask.NewController(subtaskService)
 
+	postLoggedIn := middleware.RateLimiterMiddleware(*redis, 1000, 3 * time.Minute)
+
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware(config))
+	router.Use(middleware.TimeoutMiddleware(10 * time.Second))
 	group := router.Group("/")
-	auth.RegisterRoutes(group, authController)
-	user.RegisterRoutes(group, userController, middleware.AuthMiddleware(config))
-	project.RegisterRoutes(group, projectController, middleware.AuthMiddleware(config))
-	task.RegisterRoutes(group, taskController, middleware.AuthMiddleware(config))
-	subtask.RegisterRoutes(group, subtaskController, middleware.AuthMiddleware(config))
+	auth.RegisterRoutes(group, authController, middleware.RateLimiterMiddleware(*redis, 10, 60 * time.Second))
+	
+	user.RegisterRoutes(group, userController, middleware.AuthMiddleware(config), postLoggedIn)
+	project.RegisterRoutes(group, projectController, middleware.AuthMiddleware(config), postLoggedIn)
+	task.RegisterRoutes(group, taskController, middleware.AuthMiddleware(config), postLoggedIn)
+	subtask.RegisterRoutes(group, subtaskController, middleware.AuthMiddleware(config), postLoggedIn)
 
 	router.Run(":8080")
 }
