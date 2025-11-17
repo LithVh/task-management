@@ -26,7 +26,7 @@ func CreateToken(config *config.Config, userID uuid.UUID) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
+	
 	tokenString, err := token.SignedString([]byte(config.JWT.Secret))
 	if err != nil {
 		return "", fmt.Errorf("CreateToken - %v", err)

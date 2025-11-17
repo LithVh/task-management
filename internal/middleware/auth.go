@@ -42,8 +42,6 @@ func AuthMiddleware(config *config.Config) gin.HandlerFunc {
 }
 
 
-
-// // GetUserID extracts user_id from gin context
 // func GetUserID(c *gin.Context) (uuid.UUID, bool) {
 // 	userID, exists := c.Get("user_id")
 // 	if !exists {
