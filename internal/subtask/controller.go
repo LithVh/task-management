@@ -17,7 +17,7 @@ func NewController(service Service) *Controller {
 	return &Controller{service: service}
 }
 
-//list all subtasks of a task
+// list all subtasks of a task
 func (ctrl *Controller) List(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -45,7 +45,7 @@ func (ctrl *Controller) List(c *gin.Context) {
 		priorityPtr = &priority
 	}
 
-	subtasks, err := ctrl.service.List(userUUID, taskID, statusPtr, priorityPtr)
+	subtasks, err := ctrl.service.List(c.Request.Context(), userUUID, taskID, statusPtr, priorityPtr)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.IndentedJSON(404, gin.H{"error": err.Error()})
@@ -62,7 +62,7 @@ func (ctrl *Controller) List(c *gin.Context) {
 	c.JSON(200, ToSubtaskResponseList(subtasks))
 }
 
-//creates a new subtask for a given task
+// creates a new subtask for a given task
 func (ctrl *Controller) Create(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -85,7 +85,7 @@ func (ctrl *Controller) Create(c *gin.Context) {
 		return
 	}
 
-	subtask, err := ctrl.service.Create(userUUID, taskID, req)
+	subtask, err := ctrl.service.Create(c.Request.Context(), userUUID, taskID, req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.IndentedJSON(404, gin.H{"error": err.Error()})
@@ -118,7 +118,7 @@ func (ctrl *Controller) GetByID(c *gin.Context) {
 		return
 	}
 
-	subtask, err := ctrl.service.GetByID(userUUID, id)
+	subtask, err := ctrl.service.GetByID(c.Request.Context(), userUUID, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -157,7 +157,7 @@ func (ctrl *Controller) Update(c *gin.Context) {
 		return
 	}
 
-	subtask, err := ctrl.service.Update(userUUID, id, req)
+	subtask, err := ctrl.service.Update(c.Request.Context(), userUUID, id, req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -190,7 +190,7 @@ func (ctrl *Controller) ToggleComplete(c *gin.Context) {
 		return
 	}
 
-	subtask, err := ctrl.service.ToggleComplete(userUUID, id)
+	subtask, err := ctrl.service.ToggleComplete(c.Request.Context(), userUUID, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -225,7 +225,7 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 		return
 	}
 
-	err = ctrl.service.Delete(userUUID, id)
+	err = ctrl.service.Delete(c.Request.Context(), userUUID, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -241,4 +241,3 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "subtask deleted successfully"})
 }
-

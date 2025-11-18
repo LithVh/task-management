@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -10,12 +11,12 @@ import (
 )
 
 type Service interface {
-	List(projectID int64, userID uuid.UUID, filters map[string]interface{}) ([]*TaskResponse, error)
-	Create(projectID int64, userID uuid.UUID, dto *CreateTaskRequest) (*TaskResponse, error)
-	GetByID(taskID int64, userID uuid.UUID) (*TaskResponse, error)
-	Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest) (*TaskResponse, error)
-	ToggleComplete(taskID int64, userID uuid.UUID) (*TaskResponse, error)
-	Delete(taskID int64, userID uuid.UUID) error
+	List(ctx context.Context, projectID int64, userID uuid.UUID, filters map[string]interface{}) ([]*TaskResponse, error)
+	Create(ctx context.Context, projectID int64, userID uuid.UUID, dto *CreateTaskRequest) (*TaskResponse, error)
+	GetByID(ctx context.Context, taskID int64, userID uuid.UUID) (*TaskResponse, error)
+	Update(ctx context.Context, taskID int64, userID uuid.UUID, dto *UpdateTaskRequest) (*TaskResponse, error)
+	ToggleComplete(ctx context.Context, taskID int64, userID uuid.UUID) (*TaskResponse, error)
+	Delete(ctx context.Context, taskID int64, userID uuid.UUID) error
 }
 
 type service struct {
@@ -30,8 +31,8 @@ func NewService(repo *Repository, projectRepo *project.Repository) Service {
 	}
 }
 
-func (s *service) verifyProjectOwner(projectID int64, userID uuid.UUID) error {
-	hasAccess, err := s.projectRepo.IsOwner(projectID, userID)
+func (s *service) verifyProjectOwner(ctx context.Context, projectID int64, userID uuid.UUID) error {
+	hasAccess, err := s.projectRepo.IsOwner(ctx, projectID, userID)
 	if err != nil {
 		return fmt.Errorf("verifyProjectAccess: %v", err)
 	}
@@ -41,8 +42,8 @@ func (s *service) verifyProjectOwner(projectID int64, userID uuid.UUID) error {
 	return nil
 }
 
-func (s *service) verifyProjectAccess(projectID int64, userID uuid.UUID) error {
-	hasAccess, err := s.projectRepo.HasAccess(projectID, userID)
+func (s *service) verifyProjectAccess(ctx context.Context, projectID int64, userID uuid.UUID) error {
+	hasAccess, err := s.projectRepo.HasAccess(ctx, projectID, userID)
 	if err != nil {
 		return fmt.Errorf("verifyProjectAccess: %v", err)
 	}
@@ -52,20 +53,20 @@ func (s *service) verifyProjectAccess(projectID int64, userID uuid.UUID) error {
 	return nil
 }
 
-func (s *service) List(projectID int64, userID uuid.UUID, filters map[string]interface{}) ([]*TaskResponse, error) {
-	if err := s.verifyProjectAccess(projectID, userID); err != nil {
+func (s *service) List(ctx context.Context, projectID int64, userID uuid.UUID, filters map[string]interface{}) ([]*TaskResponse, error) {
+	if err := s.verifyProjectAccess(ctx, projectID, userID); err != nil {
 		return nil, err
 	}
 
-	tasks, err := s.repo.FindByProjectID(projectID, filters)
+	tasks, err := s.repo.FindByProjectID(ctx, projectID, filters)
 	if err != nil {
 		return nil, err
 	}
 	return ToTaskResponseList(tasks), nil
 }
 
-func (s *service) Create(projectID int64, userID uuid.UUID, dto *CreateTaskRequest) (*TaskResponse, error) {
-	if err := s.verifyProjectAccess(projectID, userID); err != nil {
+func (s *service) Create(ctx context.Context, projectID int64, userID uuid.UUID, dto *CreateTaskRequest) (*TaskResponse, error) {
+	if err := s.verifyProjectAccess(ctx, projectID, userID); err != nil {
 		return nil, err
 	}
 
@@ -82,34 +83,33 @@ func (s *service) Create(projectID int64, userID uuid.UUID, dto *CreateTaskReque
 		UpdatedAt:   now,
 	}
 
-	if err := s.repo.Create(task); err != nil {
+	if err := s.repo.Create(ctx, task); err != nil {
 		return nil, err
 	}
 
 	return ToTaskResponse(task), nil
 }
 
-func (s *service) GetByID(taskID int64, userID uuid.UUID) (*TaskResponse, error) {
-	task, err := s.repo.FindByID(taskID)
+func (s *service) GetByID(ctx context.Context, taskID int64, userID uuid.UUID) (*TaskResponse, error) {
+	task, err := s.repo.FindByID(ctx, taskID)
 	if err != nil {
-		return nil, fmt.Errorf("GetByID: %v",err)
+		return nil, fmt.Errorf("GetByID: %v", err)
 	}
 
-	if err := s.verifyProjectAccess(task.ProjectID, userID); err != nil {
+	if err := s.verifyProjectAccess(ctx, task.ProjectID, userID); err != nil {
 		return nil, fmt.Errorf("GetByID: %v", err)
 	}
 
 	return ToTaskResponse(task), nil
 }
 
-
-func (s *service) Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest) (*TaskResponse, error) {
-	task, err := s.repo.FindByID(taskID)
+func (s *service) Update(ctx context.Context, taskID int64, userID uuid.UUID, dto *UpdateTaskRequest) (*TaskResponse, error) {
+	task, err := s.repo.FindByID(ctx, taskID)
 	if err != nil {
 		return nil, fmt.Errorf("Update: %v", err)
 	}
 
-	if err := s.verifyProjectOwner(task.ProjectID, userID); err != nil {
+	if err := s.verifyProjectOwner(ctx, task.ProjectID, userID); err != nil {
 		return nil, fmt.Errorf("Update: %v", err)
 	}
 
@@ -131,20 +131,20 @@ func (s *service) Update(taskID int64, userID uuid.UUID, dto *UpdateTaskRequest)
 	}
 	task.UpdatedAt = time.Now()
 
-	if err := s.repo.Update(task); err != nil {
+	if err := s.repo.Update(ctx, task); err != nil {
 		return nil, fmt.Errorf("Update: %v", err)
 	}
 
 	return ToTaskResponse(task), nil
 }
 
-func (s *service) ToggleComplete(taskID int64, userID uuid.UUID) (*TaskResponse, error) {
-	task, err := s.repo.FindByID(taskID)
+func (s *service) ToggleComplete(ctx context.Context, taskID int64, userID uuid.UUID) (*TaskResponse, error) {
+	task, err := s.repo.FindByID(ctx, taskID)
 	if err != nil {
 		return nil, fmt.Errorf("ToggleComplete: %v", err)
 	}
 
-	if err := s.verifyProjectAccess(task.ProjectID, userID); err != nil {
+	if err := s.verifyProjectAccess(ctx, task.ProjectID, userID); err != nil {
 		return nil, err
 	}
 
@@ -158,22 +158,22 @@ func (s *service) ToggleComplete(taskID int64, userID uuid.UUID) (*TaskResponse,
 
 	task.UpdatedAt = time.Now()
 
-	if err := s.repo.Update(task); err != nil {
+	if err := s.repo.Update(ctx, task); err != nil {
 		return nil, err
 	}
 
 	return ToTaskResponse(task), nil
 }
 
-func (s *service) Delete(taskID int64, userID uuid.UUID) error {
-	task, err := s.repo.FindByID(taskID)
+func (s *service) Delete(ctx context.Context, taskID int64, userID uuid.UUID) error {
+	task, err := s.repo.FindByID(ctx, taskID)
 	if err != nil {
 		return err
 	}
 
-	if err := s.verifyProjectOwner(task.ProjectID, userID); err != nil {
+	if err := s.verifyProjectOwner(ctx, task.ProjectID, userID); err != nil {
 		return err
 	}
 
-	return s.repo.Delete(taskID)
+	return s.repo.Delete(ctx, taskID)
 }

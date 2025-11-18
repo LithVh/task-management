@@ -4,7 +4,7 @@ services:
     container_name: task-management-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 0
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: task_management
     ports:
       - "5432:5432"
@@ -12,6 +12,20 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: task-management-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,3 +53,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

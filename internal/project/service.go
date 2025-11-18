@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -8,12 +9,12 @@ import (
 )
 
 type Service interface {
-	List(userID uuid.UUID) ([]*ProjectResponse, error)
-	Create(userID uuid.UUID, dto *CreateProjectRequest) (*ProjectResponse, error)
-	GetByID(projectID int64, userID uuid.UUID) (*ProjectResponse, error)
-	Update(projectID int64, userID uuid.UUID, dto *UpdateProjectRequest) (*ProjectResponse, error)
-	Delete(projectID int64, userID uuid.UUID) error
-	AddUser(projectID int64, userID uuid.UUID, targetID uuid.UUID) error
+	List(ctx context.Context, userID uuid.UUID) ([]*ProjectResponse, error)
+	Create(ctx context.Context, userID uuid.UUID, dto *CreateProjectRequest) (*ProjectResponse, error)
+	GetByID(ctx context.Context, projectID int64, userID uuid.UUID) (*ProjectResponse, error)
+	Update(ctx context.Context, projectID int64, userID uuid.UUID, dto *UpdateProjectRequest) (*ProjectResponse, error)
+	Delete(ctx context.Context, projectID int64, userID uuid.UUID) error
+	AddUser(ctx context.Context, projectID int64, userID uuid.UUID, targetID uuid.UUID) error
 }
 
 type service struct {
@@ -24,15 +25,15 @@ func NewService(repo *Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) List(userID uuid.UUID) ([]*ProjectResponse, error) {
-	projects, err := s.repo.FindByUserID(userID)
+func (s *service) List(ctx context.Context, userID uuid.UUID) ([]*ProjectResponse, error) {
+	projects, err := s.repo.FindByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 	return ToProjectResponseList(projects), nil
 }
 
-func (s *service) Create(userID uuid.UUID, dto *CreateProjectRequest) (*ProjectResponse, error) {
+func (s *service) Create(ctx context.Context, userID uuid.UUID, dto *CreateProjectRequest) (*ProjectResponse, error) {
 	now := time.Now()
 	project := &Project{
 		OwnerID:     userID,
@@ -42,15 +43,15 @@ func (s *service) Create(userID uuid.UUID, dto *CreateProjectRequest) (*ProjectR
 		UpdatedAt:   now,
 	}
 
-	if err := s.repo.Create(project); err != nil {
+	if err := s.repo.Create(ctx, project); err != nil {
 		return nil, err
 	}
 
 	return ToProjectResponse(project), nil
 }
 
-func (s *service) GetByID(projectID int64, userID uuid.UUID) (*ProjectResponse, error) {
-	project, err := s.repo.FindByID(projectID)
+func (s *service) GetByID(ctx context.Context, projectID int64, userID uuid.UUID) (*ProjectResponse, error) {
+	project, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +64,8 @@ func (s *service) GetByID(projectID int64, userID uuid.UUID) (*ProjectResponse, 
 	return ToProjectResponse(project), nil
 }
 
-func (s *service) Update(projectID int64, userID uuid.UUID, dto *UpdateProjectRequest) (*ProjectResponse, error) {
-	project, err := s.repo.FindByID(projectID)
+func (s *service) Update(ctx context.Context, projectID int64, userID uuid.UUID, dto *UpdateProjectRequest) (*ProjectResponse, error) {
+	project, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,15 +82,15 @@ func (s *service) Update(projectID int64, userID uuid.UUID, dto *UpdateProjectRe
 	}
 	project.UpdatedAt = time.Now()
 
-	if err := s.repo.Update(project); err != nil {
+	if err := s.repo.Update(ctx, project); err != nil {
 		return nil, err
 	}
 
 	return ToProjectResponse(project), nil
 }
 
-func (s *service) Delete(projectID int64, userID uuid.UUID) error {
-	project, err := s.repo.FindByID(projectID)
+func (s *service) Delete(ctx context.Context, projectID int64, userID uuid.UUID) error {
+	project, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
 		return err
 	}
@@ -98,11 +99,11 @@ func (s *service) Delete(projectID int64, userID uuid.UUID) error {
 		return fmt.Errorf("unauthorized: you don't own this project - Delete: ")
 	}
 
-	return s.repo.Delete(projectID)
+	return s.repo.Delete(ctx, projectID)
 }
 
-func (s *service) AddUser(projectID int64, userID uuid.UUID, targetID uuid.UUID) error {
-	project, err := s.repo.FindByID(projectID)
+func (s *service) AddUser(ctx context.Context, projectID int64, userID uuid.UUID, targetID uuid.UUID) error {
+	project, err := s.repo.FindByID(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("AddUser: %v", err)
 	}
@@ -111,7 +112,7 @@ func (s *service) AddUser(projectID int64, userID uuid.UUID, targetID uuid.UUID)
 		return fmt.Errorf("unauthorized: you don't own this project - AddUser: ")
 	}
 
-	projectMember, err := s.repo.MemberByID(projectID, targetID)
+	projectMember, err := s.repo.MemberByID(ctx, projectID, targetID)
 	if err != nil {
 		return fmt.Errorf("AddUser: %v", err)
 	}
@@ -122,7 +123,7 @@ func (s *service) AddUser(projectID int64, userID uuid.UUID, targetID uuid.UUID)
 		}
 	}
 
-	err = s.repo.AddUser(projectID, targetID)
+	err = s.repo.AddUser(ctx, projectID, targetID)
 	if err != nil {
 		return fmt.Errorf("AddUser: %v", err)
 	}

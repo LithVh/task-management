@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -12,8 +13,8 @@ import (
 )
 
 type AuthService interface {
-	Register(dto *RegisterRequest) (*AuthResponse, error)
-	Login(dto *LoginRequest) (*AuthResponse, error)
+	Register(ctx context.Context, dto *RegisterRequest) (*AuthResponse, error)
+	Login(ctx context.Context, dto *LoginRequest) (*AuthResponse, error)
 }
 
 type authService struct {
@@ -25,8 +26,8 @@ func NewAuthService(config *config.Config, repo *user.Repository) AuthService {
 	return &authService{config: config, repo: repo}
 }
 
-func (s *authService) Register(dto *RegisterRequest) (*AuthResponse, error) {
-	available, err := s.repo.EmailAvailale(dto.Email)
+func (s *authService) Register(ctx context.Context, dto *RegisterRequest) (*AuthResponse, error) {
+	available, err := s.repo.EmailAvailale(ctx, dto.Email)
 	if err != nil {
 		return nil, fmt.Errorf("Register: %v", err)
 	}
@@ -46,7 +47,7 @@ func (s *authService) Register(dto *RegisterRequest) (*AuthResponse, error) {
 		CreatedAt:    time.Now(),
 	}
 
-	err = s.repo.Create(new)
+	err = s.repo.Create(ctx, new)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add user to DB - Register: %v", err)
 	}
@@ -63,9 +64,9 @@ func (s *authService) Register(dto *RegisterRequest) (*AuthResponse, error) {
 
 }
 
-func (s *authService) Login(dto *LoginRequest) (*AuthResponse, error) {
+func (s *authService) Login(ctx context.Context, dto *LoginRequest) (*AuthResponse, error) {
 
-	userInfo, err := s.repo.FindByEmail(dto.Email)
+	userInfo, err := s.repo.FindByEmail(ctx, dto.Email)
 	if err != nil {
 		return nil, fmt.Errorf("Login: %v", err)
 	}

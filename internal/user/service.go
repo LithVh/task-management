@@ -1,14 +1,15 @@
 package user
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
 )
 
 type Service interface {
-	GetProfile(id uuid.UUID) (*UserResponse, error)
-	UpdateProfile(id uuid.UUID, dto *UpdateUserRequest) (*UserResponse, error)
+	GetProfile(ctx context.Context, id uuid.UUID) (*UserResponse, error)
+	UpdateProfile(ctx context.Context, id uuid.UUID, dto *UpdateUserRequest) (*UserResponse, error)
 }
 
 type service struct {
@@ -19,8 +20,8 @@ func NewService(repo *Repository) Service {
 	return &service{repo: repo}
 }
 
-func (service *service) GetProfile(id uuid.UUID) (*UserResponse, error) {
-	user, err := service.repo.FindByID(id)
+func (service *service) GetProfile(ctx context.Context, id uuid.UUID) (*UserResponse, error) {
+	user, err := service.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("GetProfile: %v", err)
 	}
@@ -28,14 +29,14 @@ func (service *service) GetProfile(id uuid.UUID) (*UserResponse, error) {
 	return &UserResponse{user.ID, user.Name, user.Email}, nil
 }
 
-func (service *service) UpdateProfile(id uuid.UUID, dto *UpdateUserRequest) (*UserResponse, error) {
-	user, err := service.repo.FindByID(id)
+func (service *service) UpdateProfile(ctx context.Context, id uuid.UUID, dto *UpdateUserRequest) (*UserResponse, error) {
+	user, err := service.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("GetProfile: %v", err)
 	}
 
 	user.Name = dto.Name
-	err = service.repo.Update(user)
+	err = service.repo.Update(ctx, user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update profile - UpdateProfile: %v", err)
 	}

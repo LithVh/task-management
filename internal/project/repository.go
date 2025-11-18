@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -16,9 +17,9 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) FindByID(id int64) (*Project, error) {
+func (r *Repository) FindByID(ctx context.Context, id int64) (*Project, error) {
 	var project Project
-	err := r.db.Where("id = ?", id).First(&project).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&project).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("project not found - FindByID: %v", err)
@@ -28,42 +29,42 @@ func (r *Repository) FindByID(id int64) (*Project, error) {
 	return &project, nil
 }
 
-func (r *Repository) FindByUserID(userID uuid.UUID) ([]*Project, error) {
+func (r *Repository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]*Project, error) {
 	var projects []*Project
-	err := r.db.Where("owner_id = ?", userID).Order("created_at DESC").Find(&projects).Error
+	err := r.db.WithContext(ctx).Where("owner_id = ?", userID).Order("created_at DESC").Find(&projects).Error
 	if err != nil {
 		return nil, fmt.Errorf("FindByUserID: %v", err)
 	}
 	return projects, nil
 }
 
-func (r *Repository) Create(project *Project) error {
-	err := r.db.Create(project).Error
+func (r *Repository) Create(ctx context.Context, project *Project) error {
+	err := r.db.WithContext(ctx).Create(project).Error
 	if err != nil {
 		return fmt.Errorf("project - Create: %v", err)
 	}
 	return nil
 }
 
-func (r *Repository) Update(project *Project) error {
-	err := r.db.Save(project).Error
+func (r *Repository) Update(ctx context.Context, project *Project) error {
+	err := r.db.WithContext(ctx).Save(project).Error
 	if err != nil {
 		return fmt.Errorf("project - Update: %v", err)
 	}
 	return nil
 }
 
-func (r *Repository) Delete(id int64) error {
-	err := r.db.Delete(&Project{}, id).Error
+func (r *Repository) Delete(ctx context.Context, id int64) error {
+	err := r.db.WithContext(ctx).Delete(&Project{}, id).Error
 	if err != nil {
 		return fmt.Errorf("project - Delete: %v", err)
 	}
 	return nil
 }
 
-func (r *Repository) AddUser(projectID int64, userID uuid.UUID) error {
+func (r *Repository) AddUser(ctx context.Context, projectID int64, userID uuid.UUID) error {
 	projectMember := ProjectMember{UserID: userID, ProjectID: projectID}
-	err := r.db.Create(&projectMember).Error
+	err := r.db.WithContext(ctx).Create(&projectMember).Error
 	if err != nil {
 		return fmt.Errorf("AddUser: %v", err)
 	}
@@ -71,21 +72,21 @@ func (r *Repository) AddUser(projectID int64, userID uuid.UUID) error {
 	return nil
 }
 
-func (r *Repository) MemberByID(projectID int64, targetID uuid.UUID) (*ProjectMember, error) {
+func (r *Repository) MemberByID(ctx context.Context, projectID int64, targetID uuid.UUID) (*ProjectMember, error) {
 	var projectMember ProjectMember
-	err := r.db.Where("project_id = ?", projectID).First(&projectMember).Error
+	err := r.db.WithContext(ctx).Where("project_id = ?", projectID).First(&projectMember).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("MemberListBy: %v", err)
 	}
-	
+
 	return &projectMember, nil
 }
 
-func (r *Repository) IsOwner(projectID int64, userID uuid.UUID) (bool, error) {
-	project, err := r.FindByID(projectID)
+func (r *Repository) IsOwner(ctx context.Context, projectID int64, userID uuid.UUID) (bool, error) {
+	project, err := r.FindByID(ctx, projectID)
 	if err != nil {
 		return false, fmt.Errorf("project doesnt exist - HasAccess: %v", err)
 	}
@@ -93,9 +94,9 @@ func (r *Repository) IsOwner(projectID int64, userID uuid.UUID) (bool, error) {
 	return project.OwnerID == userID, nil
 }
 
-func (r *Repository) HasAccess(projectID int64, userID uuid.UUID) (bool, error) {
+func (r *Repository) HasAccess(ctx context.Context, projectID int64, userID uuid.UUID) (bool, error) {
 	// var project Project
-	project, err := r.FindByID(projectID)
+	project, err := r.FindByID(ctx, projectID)
 	if err != nil {
 		return false, fmt.Errorf("project doesnt exist - HasAccess: %v", err)
 	}
@@ -112,10 +113,10 @@ func (r *Repository) HasAccess(projectID int64, userID uuid.UUID) (bool, error) 
 	// 	return false, fmt.Errorf("owner check - HasAccess: %v", err)
 	// }
 
-	fmt.Println(project)
+	// fmt.Println(project)
 	// Check if user is a member
 	var member ProjectMember
-	err = r.db.Where("project_id = ? AND user_id = ?", projectID, userID).First(&member).Error
+	err = r.db.WithContext(ctx).Where("project_id = ? AND user_id = ?", projectID, userID).First(&member).Error
 	if err == nil {
 		return true, nil // User is a member
 	}

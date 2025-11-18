@@ -41,7 +41,7 @@ func (ctrl *Controller) List(c *gin.Context) {
 		filters["priority"] = priority
 	}
 
-	tasks, err := ctrl.service.List(projectID, userUUID, filters)
+	tasks, err := ctrl.service.List(c.Request.Context(), projectID, userUUID, filters)
 	if err != nil {
 		if err.Error() == "project not found" {
 			c.IndentedJSON(404, gin.H{
@@ -90,7 +90,7 @@ func (ctrl *Controller) Create(c *gin.Context) {
 		return
 	}
 
-	task, err := ctrl.service.Create(projectID, userUUID, &dto)
+	task, err := ctrl.service.Create(c.Request.Context(), projectID, userUUID, &dto)
 	if err != nil {
 		if err.Error() == "project not found" {
 			c.IndentedJSON(404, gin.H{
@@ -131,7 +131,7 @@ func (ctrl *Controller) GetByID(c *gin.Context) {
 		return
 	}
 
-	task, err := ctrl.service.GetByID(taskID, userUUID)
+	task, err := ctrl.service.GetByID(c.Request.Context(), taskID, userUUID)
 	if err != nil {
 		if err.Error() == "task not found" {
 			c.IndentedJSON(404, gin.H{
@@ -180,7 +180,7 @@ func (ctrl *Controller) Update(c *gin.Context) {
 		return
 	}
 
-	task, err := ctrl.service.Update(taskID, userUUID, &dto)
+	task, err := ctrl.service.Update(c.Request.Context(), taskID, userUUID, &dto)
 	if err != nil {
 		if err.Error() == "task not found" {
 			c.IndentedJSON(404, gin.H{
@@ -221,7 +221,7 @@ func (ctrl *Controller) ToggleComplete(c *gin.Context) {
 		return
 	}
 
-	task, err := ctrl.service.ToggleComplete(taskID, userUUID)
+	task, err := ctrl.service.ToggleComplete(c.Request.Context(), taskID, userUUID)
 	if err != nil {
 		if err.Error() == "task not found" {
 			c.IndentedJSON(404, gin.H{
@@ -262,7 +262,7 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 		return
 	}
 
-	err = ctrl.service.Delete(taskID, userUUID)
+	err = ctrl.service.Delete(c.Request.Context(), taskID, userUUID)
 	if err != nil {
 		if err.Error() == "task not found" {
 			c.IndentedJSON(404, gin.H{

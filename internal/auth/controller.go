@@ -21,7 +21,7 @@ func (controller *AuthController) Register(c *gin.Context) {
 		return
 	}
 
-	res, err := controller.service.Register(&dto)
+	res, err := controller.service.Register(c.Request.Context(), &dto)
 	if err != nil {
 		if err.Error() == "email already registered" {
 			c.IndentedJSON(409, gin.H{
@@ -48,7 +48,7 @@ func (controller *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	res, err := controller.service.Login(&dto)
+	res, err := controller.service.Login(c.Request.Context(), &dto)
 	if err != nil {
 		c.IndentedJSON(401, gin.H{
 			"error": err.Error(),

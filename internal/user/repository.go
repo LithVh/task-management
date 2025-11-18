@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -16,7 +17,7 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) FindByID(id uuid.UUID) (*User, error) {
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*User, error) {
 	var user User
 	err := r.db.Where("id = ?", id).First(&user).Error
 	if err != nil {
@@ -29,7 +30,7 @@ func (r *Repository) FindByID(id uuid.UUID) (*User, error) {
 	return &user, nil
 }
 
-func (r *Repository) FindByEmail(email string) (*User, error) {
+func (r *Repository) FindByEmail(ctx context.Context, email string) (*User, error) {
 	var user User
 	err := r.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
@@ -42,25 +43,25 @@ func (r *Repository) FindByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (r *Repository) Create(user *User) error {
-	err := r.db.Create(user).Error
+func (r *Repository) Create(ctx context.Context, user *User) error {
+	err := r.db.WithContext(ctx).Create(user).Error
 	if err != nil {
 		return fmt.Errorf("Create: %v", err)
 	}
 	return nil
 }
 
-func (r *Repository) Update(user *User) error {
-	err := r.db.Model(&user).Where("id = ?", user.ID).Updates(user).Error
+func (r *Repository) Update(ctx context.Context, user *User) error {
+	err := r.db.WithContext(ctx).Model(&user).Where("id = ?", user.ID).Updates(user).Error
 	if err != nil {
 		return fmt.Errorf("Update: %v", err)
 	}
 	return nil
 }
 
-func (r *Repository) EmailAvailale(email string) (bool, error) {
+func (r *Repository) EmailAvailale(ctx context.Context, email string) (bool, error) {
 	var count int64
-	err := r.db.Model(&User{}).Where("email = ?", email).Count(&count).Error
+	err := r.db.WithContext(ctx).Model(&User{}).Where("email = ?", email).Count(&count).Error
 	if err != nil {
 		return false, fmt.Errorf("EmailExists: %v", err)
 	}

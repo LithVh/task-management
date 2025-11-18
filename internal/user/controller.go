@@ -33,7 +33,7 @@ func (controller *Controller) MyProfile(c *gin.Context) {
 	// 	return
 	// }
 
-	user, err := controller.service.GetProfile(userUUID)
+	user, err := controller.service.GetProfile(c.Request.Context(), userUUID)
 	if err != nil {
 		c.IndentedJSON(404, gin.H{
 			"error": err.Error(),
@@ -63,7 +63,7 @@ func (controller *Controller) UpdateMyProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := controller.service.UpdateProfile(userUUID, &dto)
+	user, err := controller.service.UpdateProfile(c.Request.Context(), userUUID, &dto)
 	if err != nil {
 		if err.Error() == "email already in use" {
 			c.IndentedJSON(409, gin.H{

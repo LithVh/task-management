@@ -27,7 +27,7 @@ func (controller *Controller) List(c *gin.Context) {
 
 	userUUID := userID.(uuid.UUID)
 
-	projects, err := controller.service.List(userUUID)
+	projects, err := controller.service.List(c.Request.Context(), userUUID)
 	if err != nil {
 		c.IndentedJSON(500, gin.H{
 			"error": err.Error(),
@@ -56,7 +56,7 @@ func (controller *Controller) Create(c *gin.Context) {
 		return
 	}
 
-	project, err := controller.service.Create(userUUID, &dto)
+	project, err := controller.service.Create(c.Request.Context(), userUUID, &dto)
 	if err != nil {
 		c.IndentedJSON(500, gin.H{
 			"error": err.Error(),
@@ -85,7 +85,7 @@ func (controller *Controller) GetByID(c *gin.Context) {
 		return
 	}
 
-	project, err := controller.service.GetByID(projectID, userUUID)
+	project, err := controller.service.GetByID(c.Request.Context(), projectID, userUUID)
 	if err != nil {
 		if err.Error() == "project not found" {
 			c.IndentedJSON(404, gin.H{
@@ -130,7 +130,7 @@ func (controller *Controller) Update(c *gin.Context) {
 		return
 	}
 
-	project, err := controller.service.Update(projectID, userUUID, &dto)
+	project, err := controller.service.Update(c.Request.Context(), projectID, userUUID, &dto)
 	if err != nil {
 		if err.Error() == "project not found" {
 			c.IndentedJSON(404, gin.H{
@@ -169,7 +169,7 @@ func (controller *Controller) Delete(c *gin.Context) {
 		return
 	}
 
-	err = controller.service.Delete(projectID, userUUID)
+	err = controller.service.Delete(c.Request.Context(), projectID, userUUID)
 	if err != nil {
 		if err.Error() == "project not found" {
 			c.IndentedJSON(404, gin.H{"error": err.Error()})
@@ -205,7 +205,7 @@ func (controller *Controller) AddUser(c *gin.Context) {
 		return
 	}
 
-	err = controller.service.AddUser(projectID, userUUID, dto.UserID)
+	err = controller.service.AddUser(c.Request.Context(), projectID, userUUID, dto.UserID)
 	if err != nil {
 		if strings.Contains(err.Error(), "unauthorized") {
 			c.IndentedJSON(403, gin.H{"error": err.Error()})

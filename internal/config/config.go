@@ -77,7 +77,7 @@ func Load() (*Config, error) {
 	}
 	// fmt.Println(config.Database.Password, config.JWT.Secret)
 
-	if config.Database.Password == "" || config.JWT.Secret == "" || config.Redis.Password == "" {
+	if config.Database.Password == "" || config.JWT.Secret == "" {
 		return nil, fmt.Errorf("Load - unset confidential info")
 	}
 

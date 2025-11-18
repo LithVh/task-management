@@ -1,6 +1,7 @@
 package subtask
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -11,12 +12,12 @@ import (
 )
 
 type Service interface {
-	List(userID uuid.UUID, taskID int64, status, priority *string) ([]Subtask, error)
-	Create(userID uuid.UUID, taskID int64, req CreateSubtaskRequest) (*Subtask, error)
-	GetByID(userID uuid.UUID, id int64) (*Subtask, error)
-	Update(userID uuid.UUID, id int64, req UpdateSubtaskRequest) (*Subtask, error)
-	ToggleComplete(userID uuid.UUID, id int64) (*Subtask, error)
-	Delete(userID uuid.UUID, id int64) error
+	List(ctx context.Context, userID uuid.UUID, taskID int64, status, priority *string) ([]Subtask, error)
+	Create(ctx context.Context, userID uuid.UUID, taskID int64, req CreateSubtaskRequest) (*Subtask, error)
+	GetByID(ctx context.Context, userID uuid.UUID, id int64) (*Subtask, error)
+	Update(ctx context.Context, userID uuid.UUID, id int64, req UpdateSubtaskRequest) (*Subtask, error)
+	ToggleComplete(ctx context.Context, userID uuid.UUID, id int64) (*Subtask, error)
+	Delete(ctx context.Context, userID uuid.UUID, id int64) error
 }
 
 type service struct {
@@ -32,8 +33,8 @@ func NewService(repo *Repository, taskService task.Service) Service {
 	}
 }
 
-func (s *service) verifyProjectAccess(userID uuid.UUID, taskID int64) error {
-	_, err := s.taskService.GetByID(taskID, userID)
+func (s *service) verifyProjectAccess(ctx context.Context, userID uuid.UUID, taskID int64) error {
+	_, err := s.taskService.GetByID(ctx, taskID, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return fmt.Errorf("task not found")
@@ -46,8 +47,8 @@ func (s *service) verifyProjectAccess(userID uuid.UUID, taskID int64) error {
 	return nil
 }
 
-func (s *service) checkAndAutoCompleteTask(taskID int64, userID uuid.UUID) error {
-	totalCount, err := s.repo.CountByTaskID(taskID, nil)
+func (s *service) checkAndAutoCompleteTask(ctx context.Context, taskID int64, userID uuid.UUID) error {
+	totalCount, err := s.repo.CountByTaskID(ctx, taskID, nil)
 	if err != nil {
 		return err
 	}
@@ -57,14 +58,14 @@ func (s *service) checkAndAutoCompleteTask(taskID int64, userID uuid.UUID) error
 	}
 
 	completed := true
-	completedCount, err := s.repo.CountByTaskID(taskID, &completed)
+	completedCount, err := s.repo.CountByTaskID(ctx, taskID, &completed)
 	if err != nil {
 		return err
 	}
 
 	// If all subtasks are completed, mark parent task as completed
 	if completedCount == totalCount {
-		parentTask, err := s.taskService.GetByID(taskID, userID)
+		parentTask, err := s.taskService.GetByID(ctx, taskID, userID)
 		if err != nil {
 			return err
 		}
@@ -72,7 +73,7 @@ func (s *service) checkAndAutoCompleteTask(taskID int64, userID uuid.UUID) error
 		// Only auto-complete if not already completed
 		if parentTask.Status != task.StatusCompleted {
 			completedStatus := task.StatusCompleted
-			_, err = s.taskService.Update(taskID, userID, &task.UpdateTaskRequest{
+			_, err = s.taskService.Update(ctx, taskID, userID, &task.UpdateTaskRequest{
 				Status: completedStatus,
 			})
 			if err != nil {
@@ -84,13 +85,13 @@ func (s *service) checkAndAutoCompleteTask(taskID int64, userID uuid.UUID) error
 	return nil
 }
 
-func (s *service) List(userID uuid.UUID, taskID int64, status, priority *string) ([]Subtask, error) {
+func (s *service) List(ctx context.Context, userID uuid.UUID, taskID int64, status, priority *string) ([]Subtask, error) {
 	// Verify user has access to the parent task
-	if err := s.verifyProjectAccess(userID, taskID); err != nil {
+	if err := s.verifyProjectAccess(ctx, userID, taskID); err != nil {
 		return nil, err
 	}
 
-	subtasks, err := s.repo.FindByTaskID(taskID, status, priority)
+	subtasks, err := s.repo.FindByTaskID(ctx, taskID, status, priority)
 	if err != nil {
 		return nil, err
 	}
@@ -98,9 +99,9 @@ func (s *service) List(userID uuid.UUID, taskID int64, status, priority *string)
 	return subtasks, nil
 }
 
-func (s *service) Create(userID uuid.UUID, taskID int64, req CreateSubtaskRequest) (*Subtask, error) {
+func (s *service) Create(ctx context.Context, userID uuid.UUID, taskID int64, req CreateSubtaskRequest) (*Subtask, error) {
 	// Verify user has access to the parent task
-	if err := s.verifyProjectAccess(userID, taskID); err != nil {
+	if err := s.verifyProjectAccess(ctx, userID, taskID); err != nil {
 		return nil, err
 	}
 
@@ -120,33 +121,33 @@ func (s *service) Create(userID uuid.UUID, taskID int64, req CreateSubtaskReques
 		UpdatedAt:   now,
 	}
 
-	if err := s.repo.Create(subtask); err != nil {
+	if err := s.repo.Create(ctx, subtask); err != nil {
 		return nil, err
 	}
 
 	return subtask, nil
 }
 
-func (s *service) GetByID(userID uuid.UUID, id int64) (*Subtask, error) {
-	subtask, err := s.repo.FindByID(id)
+func (s *service) GetByID(ctx context.Context, userID uuid.UUID, id int64) (*Subtask, error) {
+	subtask, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.verifyProjectAccess(userID, subtask.TaskID); err != nil {
+	if err := s.verifyProjectAccess(ctx, userID, subtask.TaskID); err != nil {
 		return nil, err
 	}
 
 	return subtask, nil
 }
 
-func (s *service) Update(userID uuid.UUID, id int64, req UpdateSubtaskRequest) (*Subtask, error) {
-	subtask, err := s.repo.FindByID(id)
+func (s *service) Update(ctx context.Context, userID uuid.UUID, id int64, req UpdateSubtaskRequest) (*Subtask, error) {
+	subtask, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("subtask not found - Update: %v", err)
 	}
 
-	if err := s.verifyProjectAccess(userID, subtask.TaskID); err != nil {
+	if err := s.verifyProjectAccess(ctx, userID, subtask.TaskID); err != nil {
 		return nil, err
 	}
 
@@ -178,12 +179,12 @@ func (s *service) Update(userID uuid.UUID, id int64, req UpdateSubtaskRequest) (
 
 	subtask.UpdatedAt = time.Now()
 
-	if err := s.repo.Update(subtask); err != nil {
+	if err := s.repo.Update(ctx, subtask); err != nil {
 		return nil, err
 	}
 
 	// Check if all subtasks are completed to auto-complete parent task
-	if err := s.checkAndAutoCompleteTask(subtask.TaskID, userID); err != nil {
+	if err := s.checkAndAutoCompleteTask(ctx, subtask.TaskID, userID); err != nil {
 		// Log the error but don't fail the subtask update
 		fmt.Printf("Warning: failed to auto-complete parent task: %v\n", err)
 	}
@@ -191,13 +192,13 @@ func (s *service) Update(userID uuid.UUID, id int64, req UpdateSubtaskRequest) (
 	return subtask, nil
 }
 
-func (s *service) ToggleComplete(userID uuid.UUID, id int64) (*Subtask, error) {
-	subtask, err := s.repo.FindByID(id)
+func (s *service) ToggleComplete(ctx context.Context, userID uuid.UUID, id int64) (*Subtask, error) {
+	subtask, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.verifyProjectAccess(userID, subtask.TaskID); err != nil {
+	if err := s.verifyProjectAccess(ctx, userID, subtask.TaskID); err != nil {
 		return nil, err
 	}
 
@@ -211,12 +212,12 @@ func (s *service) ToggleComplete(userID uuid.UUID, id int64) (*Subtask, error) {
 
 	subtask.UpdatedAt = time.Now()
 
-	if err := s.repo.Update(subtask); err != nil {
+	if err := s.repo.Update(ctx, subtask); err != nil {
 		return nil, err
 	}
 
 	// check if all subtasks are completed to auto-complete parent task
-	if err := s.checkAndAutoCompleteTask(subtask.TaskID, userID); err != nil {
+	if err := s.checkAndAutoCompleteTask(ctx, subtask.TaskID, userID); err != nil {
 		//log the error but don't fail the subtask update
 		fmt.Printf("Warning: failed to auto-complete parent task: %v\n", err)
 	}
@@ -224,15 +225,15 @@ func (s *service) ToggleComplete(userID uuid.UUID, id int64) (*Subtask, error) {
 	return subtask, nil
 }
 
-func (s *service) Delete(userID uuid.UUID, id int64) error {
-	subtask, err := s.repo.FindByID(id)
+func (s *service) Delete(ctx context.Context, userID uuid.UUID, id int64) error {
+	subtask, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if err := s.verifyProjectAccess(userID, subtask.TaskID); err != nil {
+	if err := s.verifyProjectAccess(ctx, userID, subtask.TaskID); err != nil {
 		return err
 	}
 
-	return s.repo.Delete(id)
+	return s.repo.Delete(ctx, id)
 }

@@ -6,18 +6,18 @@ import (
 
 type CreateTaskRequest struct {
 	Title       string     `json:"title" binding:"required,min=2,max=255"`
-	Description *string    `json:"description" binding:"omitempty"`
+	Description *string    `json:"description"`
 	Status      string     `json:"status" binding:"required,oneof=todo in_progress completed"`
 	Priority    *string    `json:"priority" binding:"omitempty,oneof=low medium high"`
-	DueDate     *time.Time `json:"due_date" binding:"omitempty"`
+	DueDate     *time.Time `json:"due_date"`
 }
 
 type UpdateTaskRequest struct {
 	Title       string     `json:"title" binding:"omitempty,min=2,max=255"`
-	Description *string    `json:"description" binding:"omitempty"`
+	Description *string    `json:"description"`
 	Status      string     `json:"status" binding:"omitempty,oneof=todo in_progress completed"`
 	Priority    *string    `json:"priority" binding:"omitempty,oneof=low medium high"`
-	DueDate     *time.Time `json:"due_date" binding:"omitempty"`
+	DueDate     *time.Time `json:"due_date"`
 }
 
 type TaskResponse struct {

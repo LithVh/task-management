@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -15,9 +16,9 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) FindByID(id int64) (*Task, error) {
+func (r *Repository) FindByID(ctx context.Context, id int64) (*Task, error) {
 	var task Task
-	err := r.db.Where("id = ?", id).First(&task).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&task).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("task not found - FindByID: %v", err)
@@ -27,9 +28,9 @@ func (r *Repository) FindByID(id int64) (*Task, error) {
 	return &task, nil
 }
 
-func (r *Repository) FindByProjectID(projectID int64, filters map[string]interface{}) ([]*Task, error) {
+func (r *Repository) FindByProjectID(ctx context.Context, projectID int64, filters map[string]interface{}) ([]*Task, error) {
 	var tasks []*Task
-	query := r.db.Where("project_id = ?", projectID)
+	query := r.db.WithContext(ctx).Where("project_id = ?", projectID)
 
 	if status, ok := filters["status"]; ok {
 		query = query.Where("status = ?", status)
@@ -45,26 +46,26 @@ func (r *Repository) FindByProjectID(projectID int64, filters map[string]interfa
 	return tasks, nil
 }
 
-func (r *Repository) Create(task *Task) error {
-	err := r.db.Create(task).Error
+func (r *Repository) Create(ctx context.Context, task *Task) error {
+	err := r.db.WithContext(ctx).Create(task).Error
 	if err != nil {
-		return fmt.Errorf("task - Create: %v", r.db.Create(task).Error)
+		return fmt.Errorf("task - Create: %v", err)
 	}
 	return nil
 }
 
-func (r *Repository) Update(task *Task) error {
-	err := r.db.Save(task).Error
+func (r *Repository) Update(ctx context.Context, task *Task) error {
+	err := r.db.WithContext(ctx).Save(task).Error
 	if err != nil {
-		return fmt.Errorf("task - Update: %v", r.db.Save(task).Error)
+		return fmt.Errorf("task - Update: %v", err)
 	}
 	return nil
 }
 
-func (r *Repository) Delete(id int64) error {
-	err := r.db.Delete(&Task{}, id).Error
+func (r *Repository) Delete(ctx context.Context, id int64) error {
+	err := r.db.WithContext(ctx).Delete(&Task{}, id).Error
 	if err != nil {
-		return fmt.Errorf("task - Delete: %v", r.db.Delete(&Task{}, id).Error)
+		return fmt.Errorf("task - Delete: %v", err)
 	}
 	return nil
 }
